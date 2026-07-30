@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="doc-title">
+  <span>DEVIS COMMERCIAL</span>
+  <span class="doc-number">{{ devis.numero }}</span>
+</div>
+
+<div class="info-grid">
+  <div class="info-box">
+    <h3>Client</h3>
+    <p><strong>{{ client_nom }}</strong></p>
+    {% if client.telephone %}<p><span class="label">Tél :</span> {{ client.telephone }}</p>{% endif %}
+    {% if client.email %}<p><span class="label">Email :</span> {{ client.email }}</p>{% endif %}
+    {% if client.adresse %}<p><span class="label">Adresse :</span> {{ client.adresse }}, {{ client.ville }}</p>{% endif %}
+    {% if client.ice %}<p><span class="label">ICE :</span> {{ client.ice }}</p>{% endif %}
+  </div>
+  <div class="info-box">
+    <h3>Devis</h3>
+    <p><span class="label">N° :</span> <strong>{{ devis.numero }}</strong></p>
+    <p><span class="label">Date d'émission :</span> {{ devis.date_creation | date }}</p>
+    {% if devis.date_validite %}<p><span class="label">Valide jusqu'au :</span> <strong>{{ devis.date_validite | date }}</strong></p>{% endif %}
+    {% if devis.commercial %}<p><span class="label">Commercial :</span> {{ devis.commercial }}</p>{% endif %}
+    <p><span class="label">TVA :</span> {{ devis.tva_taux }}%</p>
+  </div>
+</div>
+
+{# Lignes produits #}
+<table>
+  <thead>
+    <tr>
+      <th style="width:50px"></th>
+      <th>Référence / Description</th>
+      <th class="text-center" style="width:50px">Qté</th>
+      <th class="text-right" style="width:100px">P.U. HT</th>
+      <th class="text-center" style="width:50px">Rem. %</th>
+      <th class="text-center" style="width:50px">TVA %</th>
+      <th class="text-right" style="width:100px">Total HT</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for l in lignes %}
+      {% if l.type == 'separateur' %}
+      <tr style="background:#1A1A1A;">
+        <td colspan="6" style="padding:5px 10px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="flex:1;height:1px;background:#CC0000;"></div>
+            <span style="color:white;font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:2px;">{{ l.separateur_label or '' }}</span>
+            <div style="flex:1;height:1px;background:#CC0000;"></div>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr {% if l.is_option %}style="opacity:0.65;"{% endif %}>
+        <td class="text-center" style="width:50px;padding:4px;">
+          {% if l.image_path %}
+          <img src="{{ l.image_path }}" style="height:40px;width:40px;object-fit:contain;border-radius:3px;" />
+          {% endif %}
+        </td>
+        <td>
+          {% if l.ref %}<div style="font-size:9pt;font-weight:700;color:#CC0000;">{{ l.ref }}</div>{% endif %}
+          <div>{{ l.description or '' }}</div>
+          {% if l.finition %}<div style="font-size:8pt;color:#888;">{{ l.finition }}</div>{% endif %}
+          {% if l.is_option %}<div style="font-size:8pt;color:#888;font-style:italic;">Option</div>{% endif %}
+        </td>
+        <td class="text-center">{{ l.qty | int if l.qty == l.qty | int else l.qty }}</td>
+        <td class="text-right">{{ l.prix_unitaire_ht | mad }}</td>
+        <td class="text-center">{% if l.remise_ligne_pct > 0 %}<span style="color:#CC0000;font-weight:700;">{{ l.remise_ligne_pct }}%</span>{% else %}—{% endif %}</td>
+        <td class="text-center" style="color:#555;">{{ l.tva_taux | int }}%</td>
+        <td class="text-right">
+          {% if l.is_option %}
+          <span style="color:#888;font-style:italic;font-size:9pt;">Option</span>
+          {% else %}
+          <strong>{{ l.montant_ht | mad }}</strong>
+          {% endif %}
+        </td>
+      </tr>
+      {% endif %}
+    {% endfor %}
+  </tbody>
+</table>
+
+{# Totaux #}
+<div class="totaux">
+  <table>
+    <tbody>
+      <tr class="total-ht">
+        <td style="text-align:right;color:#666;">Total HT</td>
+        <td style="text-align:right;font-weight:600;">{{ devis.montant_ht | mad }}</td>
+      </tr>
+      <tr>
+        <td style="text-align:right;color:#666;">TVA</td>
+        <td style="text-align:right;font-weight:600;">{{ (devis.montant_ttc - devis.montant_ht + devis.montant_remise) | mad }}</td>
+      </tr>
+      {% if devis.montant_remise > 0 %}
+      <tr>
+        <td style="text-align:right;color:#CC0000;">
+          Remise {% if devis.remise_type == 'pct' %}({{ devis.remise_globale }}%){% else %}TTC{% endif %}
+        </td>
+        <td style="text-align:right;color:#CC0000;font-weight:600;">−{{ (devis.montant_remise * (1 + devis.tva_taux / 100)) | mad }}</td>
+      </tr>
+      {% endif %}
+      <tr class="total-ttc">
+        <td style="text-align:right;">TOTAL TTC</td>
+        <td style="text-align:right;">{{ devis.montant_ttc | mad }}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+{% if devis.notes %}
+<div class="note-box">
+  <strong>Notes :</strong> {{ devis.notes }}
+</div>
+{% endif %}
+
+<div class="note-box" style="background:#fff8e1;border-color:#ffc107;">
+  Ce devis est valable {% if devis.date_validite %}jusqu'au {{ devis.date_validite | date }}{% else %}30 jours à compter de sa date d'émission{% endif %}.
+  Les prix sont indiqués en Dirhams (MAD) TTC.
+</div>
+
+<div class="signature-section" style="margin-top:32px;">
+  <div class="signature-box">
+    <div class="sig-label">Bon pour accord — Signature client</div>
+    <div class="signature-area"></div>
+    <p style="font-size:8pt;color:#999;">Date : _______________</p>
+  </div>
+  <div class="signature-box">
+    <div class="sig-label">Cachet {{ company_name }}</div>
+    <div class="signature-area"></div>
+    <p style="font-size:8pt;color:#999;">Commercial : {{ devis.commercial or '_______________' }}</p>
+  </div>
+</div>
+
+{# ── Dernière page : Conditions générales + Pourquoi Miele ── #}
+{% if conditions_generales or pourquoi_miele or delai_livraison or modalite_paiement or devis.date_validite %}
+<div style="page-break-before: always; font-family: Arial, sans-serif;">
+
+  {% if conditions_generales or delai_livraison or modalite_paiement %}
+  <div style="margin-bottom: 28px;">
+    <p style="font-size:11pt;font-weight:700;color:#1A1A1A;margin:0 0 10px 0;border-bottom:1px solid #ddd;padding-bottom:6px;">
+      Conditions générales :
+    </p>
+    {% if devis.date_validite %}
+    <p style="margin:6px 0;font-size:10pt;font-style:italic;color:#CC0000;">✔ Remise valable jusqu'au {{ devis.date_validite | date }}</p>
+    {% endif %}
+    {% if delai_livraison %}
+    <p style="margin:6px 0;font-size:10pt;font-style:italic;color:#CC0000;">✔ Délai de livraison : {{ delai_livraison }}</p>
+    {% endif %}
+    {% if modalite_paiement %}
+    <p style="margin:6px 0;font-size:10pt;font-style:italic;color:#CC0000;">✔ Conditions de paiement : {{ modalite_paiement }}</p>
+    {% endif %}
+    {% for line in conditions_generales.split('\n') %}
+      {% if line.strip() %}
+        {% if line.strip().startswith('✔') %}
+        <p style="margin:6px 0;font-size:10pt;font-style:italic;color:#CC0000;">{{ line }}</p>
+        {% else %}
+        <p style="margin:6px 0;font-size:10pt;color:#1A1A1A;font-weight:600;">{{ line }}</p>
+        {% endif %}
+      {% else %}
+        <p style="margin:8px 0;"> </p>
+      {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if pourquoi_miele %}
+  <div>
+    <p style="font-size:11pt;font-weight:700;color:#1A1A1A;margin:0 0 10px 0;border-bottom:1px solid #ddd;padding-bottom:6px;">
+      Pourquoi choisir Miele ?
+    </p>
+    {% for line in pourquoi_miele.split('\n') %}
+      {% if line.strip() %}
+        {% if line.strip().startswith('✔') %}
+        <p style="margin:6px 0;font-size:10pt;font-style:italic;color:#CC0000;">{{ line }}</p>
+        {% else %}
+        <p style="margin:10px 0;font-size:10pt;font-weight:700;font-style:italic;color:#1A1A1A;">{{ line }}</p>
+        {% endif %}
+      {% else %}
+        <p style="margin:8px 0;"> </p>
+      {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+</div>
+{% endif %}
+{% endblock %}

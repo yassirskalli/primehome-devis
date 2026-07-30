@@ -1,0 +1,71 @@
+version: "3.9"
+
+# ============================================================
+# Prime Home Devis — Stack production
+# Images : ghcr.io/yassirskalli/primehome-devis-*:latest
+# Usage  : docker compose -f docker-compose.prod.yml up -d
+# ============================================================
+
+services:
+
+  devis_db:
+    image: postgres:16-alpine
+    container_name: primehome_devis_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: devis_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD requis}
+      POSTGRES_DB: devis_miele
+    volumes:
+      - devis_db_data:/var/lib/postgresql/data
+    networks:
+      - devis_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U devis_user -d devis_miele"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  devis_backend:
+    image: ghcr.io/yassirskalli/primehome-devis-backend:latest
+    container_name: primehome_devis_backend
+    restart: unless-stopped
+    depends_on:
+      devis_db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://devis_user:${DB_PASSWORD}@devis_db:5432/devis_miele
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY requis}
+      ORDER_TRACKING_URL: ${ORDER_TRACKING_URL:-http://erp_api:8000}
+      ORDER_TRACKING_TOKEN: ${ORDER_TRACKING_TOKEN:-}
+      ODOO_URL: ${ODOO_URL:?ODOO_URL requis}
+      ODOO_DB: ${ODOO_DB:-odoo}
+      ODOO_USER: ${ODOO_USER:?ODOO_USER requis}
+      ODOO_PASSWORD: ${ODOO_PASSWORD:?ODOO_PASSWORD requis}
+      DEBUG: "false"
+    volumes:
+      - devis_pdfs:/app/pdfs
+    networks:
+      - devis_net
+      - primehome_net
+
+  devis_frontend:
+    image: ghcr.io/yassirskalli/primehome-devis-frontend:latest
+    container_name: primehome_devis_frontend
+    restart: unless-stopped
+    depends_on:
+      - devis_backend
+    networks:
+      - devis_net
+      - primehome_net
+
+volumes:
+  devis_db_data:
+  devis_pdfs:
+
+networks:
+  devis_net:
+    name: devis_net
+  primehome_net:
+    external: true
+    name: primehome_net

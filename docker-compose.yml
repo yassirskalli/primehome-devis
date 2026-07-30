@@ -1,0 +1,76 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: devis_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: devis_user
+      POSTGRES_PASSWORD: devis_pass
+      POSTGRES_DB: devis_miele
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U devis_user -d devis_miele"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: devis_backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://devis_user:devis_pass@db:5432/devis_miele
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-changeme_shared_secret}
+      ORDER_TRACKING_URL: ${ORDER_TRACKING_URL:-http://host.docker.internal:8000}
+      ORDER_TRACKING_TOKEN: ${ORDER_TRACKING_TOKEN:-}
+      DEBUG: "true"
+      ODOO_URL: ${ODOO_URL:-http://odoo18_app:8069}
+      ODOO_DB: ${ODOO_DB:-odoo}
+      ODOO_USER: ${ODOO_USER:-yassir.skalli@gmail.com}
+      ODOO_PASSWORD: ${ODOO_PASSWORD:-erp_admin_2026}
+    volumes:
+      - ./backend:/app
+      - pdfs_data:/app/pdfs
+      - ./backend/app/catalogue_data.json:/app/catalogue_data.json
+    ports:
+      - "8001:8001"
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
+    networks:
+      - default
+      - odoo_net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: devis_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "3001:3001"
+    command: npm run dev -- --host --port 3001
+
+volumes:
+  postgres_data:
+  pdfs_data:
+
+networks:
+  default:
+    name: devis_miele_network
+  odoo_net:
+    external: true
+    name: project_yassirodoo_default

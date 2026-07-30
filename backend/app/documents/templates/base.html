@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<style>
+  :root {
+    --red: #CC0000;
+    --dark: #1A1A1A;
+    --gray: #666666;
+    --light: #F5F5F5;
+    --border: #DDDDDD;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; color: var(--dark); font-size: 11pt; line-height: 1.5; }
+
+  .header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    padding: 16px 0 12px; border-bottom: 3px solid var(--red); margin-bottom: 20px;
+  }
+  .company-name { font-size: 18pt; font-weight: 700; color: var(--red); }
+  .company-info { font-size: 8pt; color: var(--gray); margin-top: 4px; line-height: 1.6; }
+  .miele-badge {
+    background: var(--red); color: white; font-size: 8pt; font-weight: 700;
+    letter-spacing: 2px; padding: 3px 10px; display: inline-block; text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  .doc-title {
+    background: var(--dark); color: white; padding: 10px 20px;
+    font-size: 13pt; font-weight: 600; margin-bottom: 18px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .doc-number { font-size: 10pt; font-weight: 400; opacity: 0.8; }
+
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; }
+  .info-box { border: 1px solid var(--border); border-radius: 4px; padding: 10px; }
+  .info-box h3 {
+    font-size: 8pt; text-transform: uppercase; letter-spacing: 1px;
+    color: var(--red); font-weight: 600; margin-bottom: 5px;
+    border-bottom: 1px solid var(--border); padding-bottom: 3px;
+  }
+  .info-box p { font-size: 10pt; margin: 2px 0; }
+  .label { font-size: 8pt; color: var(--gray); }
+
+  table { width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 10pt; }
+  thead tr { background: var(--dark); color: white; }
+  thead th { padding: 7px 10px; text-align: left; font-weight: 500; font-size: 9pt; }
+  tbody tr:nth-child(even) { background: var(--light); }
+  tbody td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tbody tr { page-break-inside: avoid; }
+  .text-right { text-align: right; }
+  .text-center { text-align: center; }
+
+  .totaux { margin-left: auto; width: 300px; margin-bottom: 18px; }
+  .totaux table { margin: 0; }
+  .totaux td { padding: 5px 10px; }
+  .total-ht td { background: var(--light); }
+  .total-ttc td { background: var(--red); color: white; font-weight: 700; font-size: 11pt; }
+
+  .note-box {
+    background: #E8F4FD; border-left: 4px solid #2196F3;
+    padding: 10px 14px; margin: 14px 0; font-size: 9pt;
+  }
+
+  .signature-section { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 28px; }
+  .signature-box { border-top: 1px solid var(--border); padding-top: 8px; }
+  .sig-label { font-size: 8pt; color: var(--gray); text-transform: uppercase; letter-spacing: 1px; }
+  .signature-area { height: 60px; border: 1px dashed var(--border); margin: 8px 0; border-radius: 4px; }
+
+  .footer {
+    position: running(footer);
+    border-top: 2px solid var(--red); padding: 6px 0;
+    display: flex; justify-content: space-between; font-size: 8pt; color: var(--gray);
+    width: 100%;
+  }
+
+  @page {
+    margin: 18mm 14mm 22mm 14mm;
+    @bottom-center {
+      content: element(footer);
+      width: 100%;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="company-name">{{ company_name }}</div>
+    <div class="company-info">
+      Partenaire Officiel Miele<br>
+      {{ company_address }}<br>
+      Tél : {{ company_tel }} | {{ company_email }}<br>
+      {{ company_website }}
+    </div>
+  </div>
+  <div style="text-align:right">
+    <img src="primeHomeLogoGood.png" alt="Prime Home" style="height:64px;width:auto;display:block;margin-bottom:4px;" />
+    <div class="miele-badge">Miele Partner</div>
+  </div>
+</div>
+
+<div class="footer">
+  <span>{{ company_name }} | RC : {{ company_rc }} | ICE : {{ company_ice }} | IF : {{ company_if }} | Capital : {{ company_capital }}</span>
+  <span>{{ company_email }}</span>
+</div>
+
+{% block content %}{% endblock %}
+
+</body>
+</html>
