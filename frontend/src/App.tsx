@@ -6,6 +6,8 @@ import { DashboardPage } from './pages/Dashboard'
 import { DevisListPage } from './pages/DevisList'
 import { DevisEditorPage } from './pages/DevisEditor'
 import { ClientsPage } from './pages/Clients'
+import { OdooDevisPage } from './pages/OdooDevis'
+import { hasRole } from './lib/auth'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   return isAuthenticated() ? <>{children}</> : <Navigate to="/login" replace />
@@ -21,6 +23,9 @@ export default function App() {
         <Route path="devis/new" element={<DevisEditorPage />} />
         <Route path="devis/:id" element={<DevisEditorPage />} />
         <Route path="clients" element={<ClientsPage />} />
+        {(hasRole('admin') || hasRole('commercial')) && (
+          <Route path="odoo-devis" element={<OdooDevisPage />} />
+        )}
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -18,6 +18,9 @@ class Settings(BaseSettings):
 
     debug: bool = False
 
+    # CORS
+    allowed_origins: str = "https://erp.miele.co.ma"
+
     # Odoo (lecture seule)
     odoo_url: str = "http://odoo:8069"
     odoo_db: str = "odoo"

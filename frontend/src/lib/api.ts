@@ -69,6 +69,17 @@ export const searchOdooProduits = (q: string) =>
 export const syncOdooProduits = () =>
   api.post('/odoo/sync-produits').then(r => r.data)
 
+export const getDevisOdoo = (state?: string) =>
+  api.get('/odoo/devis-odoo', { params: state ? { state } : {} }).then(r => r.data)
+
+export const openDevisOdooPdf = async (odooId: number): Promise<void> => {
+  const res = await api.get(`/odoo/devis-odoo/${odooId}/pdf`, { responseType: 'blob' })
+  const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
+  const win = window.open(url, '_blank')
+  setTimeout(() => URL.revokeObjectURL(url), 10000)
+  if (!win) window.location.href = url
+}
+
 export const uploadProduitImage = (produitId: number, file: File) => {
   const fd = new FormData()
   fd.append('file', file)

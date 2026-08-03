@@ -111,6 +111,47 @@ def search_products(q: str, limit: int = 30) -> list[dict]:
     return records  # type: ignore
 
 
+def get_sale_orders(limit: int = 200, state: str | None = None) -> list[dict]:
+    """Récupère les devis/commandes Odoo (sale.order)."""
+    domain: list = []
+    if state:
+        domain.append(["state", "=", state])
+    else:
+        domain.append(["state", "in", ["draft", "sent", "sale", "done"]])
+    records = call(
+        "sale.order", "search_read",
+        [domain],
+        {
+            "fields": ["id", "name", "partner_id", "date_order", "amount_total",
+                       "state", "user_id", "validity_date"],
+            "limit": limit,
+            "order": "date_order desc",
+        },
+    )
+    return records  # type: ignore
+
+
+def get_sale_order_pdf(odoo_id: int) -> bytes:
+    """Télécharge le PDF du devis Odoo via session HTTP."""
+    import httpx
+    from app.config import get_settings
+    s = get_settings()
+    with httpx.Client(base_url=s.odoo_url, timeout=30) as client:
+        auth = client.post("/web/session/authenticate", json={
+            "jsonrpc": "2.0", "method": "call", "id": 1,
+            "params": {"db": s.odoo_db, "login": s.odoo_user, "password": s.odoo_password},
+        })
+        if auth.status_code != 200:
+            raise Exception("Authentification Odoo échouée")
+        pdf = client.get(
+            f"/report/pdf/sale.report_saleorder/{odoo_id}",
+            cookies=auth.cookies,
+        )
+        if pdf.status_code != 200:
+            raise Exception(f"PDF non disponible (status {pdf.status_code})")
+        return pdf.content
+
+
 def get_all_products(limit: int = 5000) -> list[dict]:
     """Récupère tous les produits vendables pour une sync complète."""
     domain = [["sale_ok", "=", True], ["active", "=", True]]

@@ -13,6 +13,7 @@ import logging
 from typing import Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import Response
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -171,6 +172,60 @@ def search_produits_odoo(
     except Exception as exc:
         logger.error("Odoo search_products error: %s", exc)
         raise HTTPException(status_code=502, detail=f"Erreur Odoo : {exc}")
+
+
+@router.get("/devis-odoo")
+def list_devis_odoo(
+    state: Optional[str] = Query(None),
+    current_user: TokenData = Depends(get_current_user),
+):
+    """Liste les devis/commandes Odoo. Réservé aux admins et commerciaux."""
+    roles = current_user.roles or []
+    if "admin" not in roles and "commercial" not in roles:
+        raise HTTPException(status_code=403, detail="Accès réservé aux admins et commerciaux.")
+    try:
+        records = odoo.get_sale_orders(state=state)
+    except Exception as exc:
+        logger.error("Odoo get_sale_orders error: %s", exc)
+        raise HTTPException(status_code=502, detail=f"Erreur Odoo : {exc}")
+
+    STATE_LABEL = {
+        "draft": "Brouillon", "sent": "Envoyé",
+        "sale": "Bon de commande", "done": "Clôturé", "cancel": "Annulé",
+    }
+    result = []
+    for r in records:
+        partner = r.get("partner_id")
+        user = r.get("user_id")
+        result.append({
+            "id": r["id"],
+            "name": r["name"],
+            "partner": partner[1] if isinstance(partner, (list, tuple)) else None,
+            "commercial": user[1] if isinstance(user, (list, tuple)) else None,
+            "date_order": r.get("date_order"),
+            "validity_date": r.get("validity_date"),
+            "amount_total": float(r.get("amount_total") or 0),
+            "state": r.get("state"),
+            "state_label": STATE_LABEL.get(r.get("state", ""), r.get("state", "")),
+        })
+    return result
+
+
+@router.get("/devis-odoo/{odoo_id}/pdf")
+def get_devis_odoo_pdf(
+    odoo_id: int,
+    current_user: TokenData = Depends(get_current_user),
+):
+    """Télécharge le PDF d'un devis Odoo."""
+    roles = current_user.roles or []
+    if "admin" not in roles and "commercial" not in roles:
+        raise HTTPException(status_code=403, detail="Accès réservé aux admins et commerciaux.")
+    try:
+        pdf_bytes = odoo.get_sale_order_pdf(odoo_id)
+    except Exception as exc:
+        logger.error("Odoo PDF error for %s: %s", odoo_id, exc)
+        raise HTTPException(status_code=502, detail=f"Erreur PDF : {exc}")
+    return Response(content=pdf_bytes, media_type="application/pdf")
 
 
 @router.post("/sync-produits", response_model=SyncResult)

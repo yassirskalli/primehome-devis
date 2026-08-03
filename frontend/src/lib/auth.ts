@@ -9,3 +9,14 @@ export const clearAuth = () => {
   localStorage.removeItem('devis_user')
 }
 export const isAuthenticated = () => !!getToken()
+
+export function getRoles(): string[] {
+  const token = getToken()
+  if (!token) return []
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')))
+    return payload.roles ?? []
+  } catch { return [] }
+}
+
+export const hasRole = (role: string) => getRoles().includes(role)
