@@ -9,7 +9,7 @@ from app.config import get_settings
 from app.database import engine, Base
 import app.models  # noqa
 
-from app.routers import auth, devis, clients, catalogue, odoo, logs
+from app.routers import auth, devis, clients, catalogue, odoo, logs, users
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -18,9 +18,8 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    if settings.debug:
-        Base.metadata.create_all(bind=engine)
-        logger.info("Tables créées.")
+    Base.metadata.create_all(bind=engine)
+    logger.info("Tables vérifiées/créées.")
     yield
 
 
@@ -32,7 +31,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.allowed_origins.split(","),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -44,6 +43,7 @@ app.include_router(clients.router)
 app.include_router(catalogue.router)
 app.include_router(odoo.router)
 app.include_router(logs.router)
+app.include_router(users.router)
 
 
 @app.get("/health")
