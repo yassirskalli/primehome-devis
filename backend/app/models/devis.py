@@ -125,7 +125,18 @@ class ActionLog(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     horodatage: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     utilisateur: Mapped[str] = mapped_column(String(100), nullable=False)
-    action: Mapped[str] = mapped_column(String(50), nullable=False)   # ex: CREATION_DEVIS
-    module: Mapped[str] = mapped_column(String(50), nullable=False)   # ex: DEVIS
-    reference: Mapped[str | None] = mapped_column(String(200), nullable=True)  # numéro devis / facture
+    action: Mapped[str] = mapped_column(String(50), nullable=False)
+    module: Mapped[str] = mapped_column(String(50), nullable=False)
+    reference: Mapped[str | None] = mapped_column(String(200), nullable=True)
     detail: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class User(Base):
+    """Utilisateurs de l'application Devis."""
+    __tablename__ = "devis_users"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    username: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
+    password_hash: Mapped[str] = mapped_column(String(200), nullable=False)
+    roles: Mapped[str] = mapped_column(String(200), nullable=False, default="commercial")
+    actif: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)

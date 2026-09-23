@@ -1,18 +1,14 @@
-from fastapi import APIRouter
+import bcrypt
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
+from sqlalchemy import select
+
 from app.auth.jwt import create_access_token
-from fastapi import HTTPException, status
+from app.database import get_db
+from app.models import User
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-
-# Utilisateurs partagés avec miele_erp (même JWT_SECRET_KEY)
-# En production : brancher sur la même DB users que miele_erp
-_USERS = {
-    "admin":       ("admin123",   ["admin", "commercial", "odoo_manager"]),
-    "commercial1": ("comm1miele", ["commercial"]),
-    "commercial2": ("comm2miele", ["commercial"]),
-    "odoo":        ("odoomiele",  ["odoo_manager"]),
-}
 
 
 class LoginIn(BaseModel):
@@ -26,8 +22,10 @@ class TokenOut(BaseModel):
 
 
 @router.post("/token", response_model=TokenOut)
-def login(payload: LoginIn):
-    user = _USERS.get(payload.username)
-    if not user or user[0] != payload.password:
+def login(payload: LoginIn, db: Session = Depends(get_db)):
+    result = db.execute(select(User).where(User.username == payload.username, User.actif == True))
+    user = result.scalar_one_or_none()
+    if not user or not bcrypt.checkpw(payload.password.encode(), user.password_hash.encode()):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Identifiants incorrects.")
-    return TokenOut(access_token=create_access_token(sub=payload.username, roles=user[1]))
+    roles = [r.strip() for r in user.roles.split(",")]
+    return TokenOut(access_token=create_access_token(sub=payload.username, roles=roles))
