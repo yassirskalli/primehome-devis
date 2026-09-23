@@ -12,7 +12,7 @@ from sqlalchemy import select
 
 from app.auth.jwt import get_current_user, TokenData
 from app.database import get_db
-from app.models import User
+from app.models.devis import User
 
 router = APIRouter(prefix="/users", tags=["Utilisateurs"])
 
